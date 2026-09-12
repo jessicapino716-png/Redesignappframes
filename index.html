@@ -180,6 +180,15 @@
   .payBtn:active { transform: scale(.97); }
   .payBtn.settled { background: transparent; color: var(--fremen); box-shadow: inset 0 0 0 1.5px var(--fremen-deep); }
   .payBtn:disabled { opacity: .3; cursor: default; box-shadow: none; }
+  .shareBtn {
+    height: 46px; border-radius: 16px; color: var(--vanilla); background: rgba(255,200,150,.07);
+    box-shadow: inset 0 0 0 1px rgba(255,190,130,.28);
+    font-family: var(--font-display); font-size: 10px; letter-spacing: .3em; text-transform: uppercase; text-indent: .3em;
+    display: inline-flex; align-items: center; justify-content: center; gap: 10px; transition: transform .15s, background .2s;
+  }
+  .shareBtn svg { width: 18px; height: 18px; color: var(--glow); }
+  .shareBtn:active { transform: scale(.97); background: rgba(255,200,150,.14); }
+  .status.copied .dot { background: var(--fremen); box-shadow: 0 0 8px var(--fremen); }
   .carry {
     grid-column: 1 / -1; display: none; justify-content: space-between; align-items: center; gap: 10px;
     padding: 12px 14px; border-radius: 16px; background: rgba(255,122,42,.1); border: 1px solid rgba(255,122,42,.25); color: var(--sand); font-size: 14px; font-weight: 500;
@@ -289,6 +298,7 @@
     <div class="side">
       <div class="walks"><b id="walkCount">0</b> <span id="walkMax">of 10</span><br>walks this week</div>
       <button class="payBtn" id="payBtn">Mark week paid</button>
+      <button class="shareBtn" id="shareBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7"/><path d="M16 6l-4-4-4 4"/><path d="M12 2v13"/></svg>Share week</button>
     </div>
     <div class="carry" id="carry"><span id="carryText"></span><b id="carryAmt"></b></div>
   </section>
@@ -313,8 +323,6 @@
 </main>
 
 <script src="config.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
 <script>
 (function () {
   'use strict';
@@ -322,7 +330,7 @@
   const DEFAULTS = {
     householdId: 'bear-and-indy', ratePerWalk: 5, walker: 'Anselm',
     dogs: [{ name: 'Bear', photo: 'images/bear.jpg' }, { name: 'Indiana Jones', short: 'Indy', photo: 'images/indy.jpg' }],
-    days: [1, 2, 3, 4, 5], firebase: {}, firstWeek: '', history: {}
+    days: [1, 2, 3, 4, 5], firstWeek: '', history: {}
   };
   const CFG = Object.assign({}, DEFAULTS, window.HELM_CONFIG || {});
   const RATE = Number(CFG.ratePerWalk) || 5;
@@ -377,35 +385,72 @@
     return past.length ? past[past.length - 1] : ds[0];
   }
 
-  // ---------- storage ----------
-  const fbCfg = CFG.firebase || {};
-  const hasFirebase = typeof firebase !== 'undefined' && fbCfg.apiKey && fbCfg.databaseURL;
-  let ref = null;
+  // ---------- storage: this phone, plus sync links ----------
   const statusEl = document.getElementById('status'), statusText = document.getElementById('statusText');
   function setStatus(mode, text) { statusEl.className = 'status ' + mode; statusText.textContent = text; }
-  if (hasFirebase) {
-    try {
-      firebase.initializeApp(fbCfg);
-      ref = firebase.database().ref('households/' + CFG.householdId);
-      let seededOnce = false;
-      ref.on('value', snap => {
-        state = normalize(snap.val());
-        if (!seededOnce) { seededOnce = true; applyHistory().forEach(pth => { const [, k, slot] = pth.split('/'); ref.child(pth).set(state.walks[k][slot]); }); }
-        cache(); render(); setStatus('live', 'Synced');
-      },
-        err => { console.error(err); setStatus('error', 'Sync blocked · check rules'); });
-      firebase.database().ref('.info/connected').on('value', s => { if (!s.val()) setStatus('local', 'Offline · will sync'); });
-    } catch (e) { console.error(e); setStatus('error', 'Firebase settings look wrong'); }
-  } else {
-    setStatus('local', typeof firebase === 'undefined' && fbCfg.apiKey ? 'Sync blocked here · this phone only' : 'This phone only');
-  }
   function write(path, value) {
     const parts = path.split('/'); let node = state;
     for (let i = 0; i < parts.length - 1; i++) { node[parts[i]] = node[parts[i]] || {}; node = node[parts[i]]; }
     if (value === null) delete node[parts[parts.length - 1]]; else node[parts[parts.length - 1]] = value;
     cache(); render();
-    if (ref) ref.child(path).set(value).catch(err => { console.error(err); setStatus('error', 'Save failed · check rules'); });
+    setStatus('local', 'Saved here · share to sync others');
   }
+
+  // A sync link carries every walk as day-offset + slot + minutes, and paid weeks as day-offsets.
+  const EPOCH = CFG.firstWeek ? mondayOf(parse(CFG.firstWeek)) : mondayOf(new Date(2026, 0, 5));
+  const dayIdx = k => Math.round((parse(k) - EPOCH) / 864e5);
+  const idxKey = i => key(addDays(EPOCH, i));
+  function encodeState() {
+    const w = [];
+    Object.keys(state.walks).sort().forEach(k => {
+      const i = dayIdx(k); if (i < 0) return;
+      SLOTS.forEach(sl => {
+        const r = state.walks[k][sl.id]; if (!r) return;
+        const d = new Date(r.at), mins = r.seeded ? '' : String(d.getHours() * 60 + d.getMinutes());
+        w.push(i + sl.id[0] + mins);
+      });
+    });
+    const paid = Object.keys(state.paid).map(dayIdx).filter(i => i >= 0).sort((a, b) => a - b);
+    return 'w=' + w.join('.') + (paid.length ? '&p=' + paid.join('.') : '');
+  }
+  function decodeState(hash) {
+    const out = { walks: {}, paid: {} }; let n = 0;
+    const q = new URLSearchParams(hash.replace(/^#/, ''));
+    (q.get('w') || '').split('.').filter(Boolean).forEach(tok => {
+      const m = /^(\d+)([ap])(\d*)$/.exec(tok); if (!m) return;
+      const k = idxKey(+m[1]), slot = m[2] === 'a' ? 'am' : 'pm';
+      const d = parse(k); if (m[3]) d.setMinutes(+m[3]); else d.setHours(slot === 'am' ? 8 : 18);
+      out.walks[k] = out.walks[k] || {}; out.walks[k][slot] = m[3] ? { at: d.getTime() } : { at: d.getTime(), seeded: true }; n++;
+    });
+    (q.get('p') || '').split('.').filter(Boolean).forEach(i => { out.paid[idxKey(+i)] = { at: Date.now(), fromLink: true }; n++; });
+    return n ? out : null;
+  }
+  function mergeIn(incoming) {
+    let added = 0;
+    Object.keys(incoming.walks).forEach(k => {
+      state.walks[k] = state.walks[k] || {};
+      Object.keys(incoming.walks[k]).forEach(slot => {
+        if (!state.walks[k][slot]) { state.walks[k][slot] = incoming.walks[k][slot]; added++; }
+        else if (!incoming.walks[k][slot].seeded && (state.walks[k][slot].seeded || incoming.walks[k][slot].at < state.walks[k][slot].at)) state.walks[k][slot] = incoming.walks[k][slot];
+      });
+    });
+    Object.keys(incoming.paid).forEach(k => { if (!state.paid[k]) { state.paid[k] = incoming.paid[k]; added++; } });
+    return added;
+  }
+  function shareUrl() { return location.origin + location.pathname + '#' + encodeState(); }
+
+  // arriving via a sync link: merge, then clean the address bar
+  let arrivalNote = '';
+  if (location.hash && location.hash.length > 3) {
+    const inc = decodeState(location.hash);
+    if (inc) {
+      const added = mergeIn(inc); cache();
+      arrivalNote = added ? 'Synced · ' + added + ' new ' + (added === 1 ? 'entry' : 'entries') + ' from the link' : 'Synced · already up to date';
+    }
+    try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {}
+  }
+  setStatus('local', arrivalNote || 'Saved on this phone · share to sync others');
+  if (arrivalNote) setTimeout(() => setStatus('local', 'Saved on this phone · share to sync others'), 6000);
 
   // ---------- avatars ----------
   const avatars = document.getElementById('avatars');
@@ -583,6 +628,25 @@
     bctx.globalAlpha = 1;
     if (grains.length) requestAnimationFrame(tickBurst);
   }
+
+  document.getElementById('shareBtn').addEventListener('click', async () => {
+    const dates = weekDates(viewMonday); let n = 0;
+    dates.forEach(d => { const w = state.walks[key(d)]; if (w) SLOTS.forEach(sl => { if (w[sl.id]) n++; }); });
+    const f = dates[0], l = dates[dates.length - 1];
+    const wkNum = CFG.firstWeek ? Math.round((viewMonday - mondayOf(parse(CFG.firstWeek))) / 6048e5) + 1 : null;
+    const paid = !!state.paid[key(viewMonday)];
+    let carryTotal = 0;
+    Object.keys(state.walks).forEach(k => { const m = mondayOf(parse(k)); if (m < viewMonday && !state.paid[key(m)]) SLOTS.forEach(sl => { if (state.walks[k][sl.id]) carryTotal += RATE; }); });
+    const text = 'HELM · ' + (wkNum ? 'Week ' + wkNum + ' · ' : '') + MON[f.getMonth()] + ' ' + f.getDate() + '–' + l.getDate() + '\n' +
+      n + ' of ' + dates.length * SLOTS.length + ' walks · ' + (paid ? 'paid $' + n * RATE : '$' + n * RATE + ' owed to ' + CFG.walker) +
+      (carryTotal ? '\n+ $' + carryTotal + ' still unpaid from earlier' : '') +
+      '\n\nOpen to sync your phone:\n' + shareUrl();
+    try {
+      if (navigator.share) { await navigator.share({ text }); setStatus('local', 'Shared'); return; }
+    } catch (e) { if (e && e.name === 'AbortError') return; }
+    try { await navigator.clipboard.writeText(text); setStatus('copied', 'Copied · paste it into WhatsApp'); return; } catch (e) {}
+    location.href = 'https://wa.me/?text=' + encodeURIComponent(text);
+  });
 
   payBtn.addEventListener('click', () => { const mk = key(viewMonday); write('paid/' + mk, state.paid[mk] ? null : { at: Date.now() }); });
   document.getElementById('prevWeek').addEventListener('click', () => { viewMonday = addDays(viewMonday, -7); selected = pickDefaultDay(viewMonday); render(); });

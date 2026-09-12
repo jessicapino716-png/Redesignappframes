@@ -42,21 +42,11 @@ window.HELM_CONFIG = {
 
   // Which days walks happen. 1 = Monday ... 5 = Friday, 6 = Saturday, 0 = Sunday.
   // To add Saturdays, change this to [1, 2, 3, 4, 5, 6].
-  days: [1, 2, 3, 4, 5],
+  days: [1, 2, 3, 4, 5]
 
   // ------------------------------------------------------------
-  //  SYNC BETWEEN PHONES (Firebase)
-  //  Leave this empty and the app works on one phone only.
-  //  Fill it in (see README.md, step 3) and every phone stays in
-  //  sync within a second.
+  //  SYNC: there is no database. Each phone keeps its own copy, and
+  //  the Share button sends a WhatsApp message with a link that
+  //  updates whoever opens it. Nothing to set up.
   // ------------------------------------------------------------
-  firebase: {
-    apiKey: "",
-    authDomain: "",
-    databaseURL: "",
-    projectId: "",
-    storageBucket: "",
-    messagingSenderId: "",
-    appId: ""
-  }
 };

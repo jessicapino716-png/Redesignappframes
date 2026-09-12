@@ -13,7 +13,8 @@ so the totals are right from day one.
 
 **How it works.** Monday through Friday, two walks a day (Morning and
 Evening). Whoever is around taps a walk when it's done and the button floods
-with color and records the time. The week sits underneath as a strip; tap any
+with color and records the time. Phones stay in sync through the Share
+button (see step 3). The week sits underneath as a strip; tap any
 day to jump to it. The ring at the bottom fills as walks are logged and shows
 dollars owed ($5 per walk). When you pay, tap **Mark week paid**. Any earlier
 week never marked paid shows up as a carry-over so nothing gets lost.
@@ -23,10 +24,10 @@ week never marked paid shows up as a carry-over so nothing gets lost.
 | File | What it is |
 | --- | --- |
 | `index.html` | The whole app. You should never need to touch it. |
-| `config.js` | Names, price per walk, days, and the sync settings. **This is the one file you edit.** |
+| `config.js` | Names, price per walk, days, and the walk history. **This is the one file you edit.** |
 | `images/bear.jpg`, `images/indy.jpg` | The dogs' photos, shown in the circles at the top. |
 
-## Setup (about 15 minutes, no coding)
+## Setup (about five minutes, no coding)
 
 ### 1. Put it on the web (GitHub Pages, two settings)
 
@@ -35,8 +36,7 @@ account. This repo is private right now, so:
 
 1. In the repo click **Settings**. Scroll to the bottom ("Danger Zone"),
    click **Change visibility**, choose **Public**, and confirm. Nothing in
-   here is secret: the Firebase values are meant to be public, and the
-   household name only matters together with the link.
+   here is secret: it's the app's design and a list of dog walks.
 2. Still in **Settings**, click **Pages** in the left sidebar. Under
    **Build and deployment**, set Source to **Deploy from a branch**, pick
    `main` and `/ (root)`, and click **Save**.
@@ -45,18 +45,9 @@ A minute later the app is live at:
 
     https://jessicapino716-png.github.io/Redesignappframes/
 
-That is the link to share. Every later change to `main` (photos, settings)
-goes live on its own within a minute or two.
+That is the link to share. Every later change (photos, settings) goes live on
+its own within a minute or two.
 
-Until step 3 below is done, the app runs in "this phone only" mode: it works,
-but each phone keeps its own walks.
-
-**Why a database at all, if it's just a web page?** A web page is like a
-printed poster: every phone that opens the link gets its own copy, and
-anything you write on your copy stays on your copy. For Anselm's tap to
-show up on your phone, all three copies have to write to one shared place on
-the internet. That shared place is the database. Firebase is Google's free
-one, and it needs about five minutes of clicking once.
 
 ### 2. Photos
 
@@ -65,55 +56,33 @@ On the repo page, open the `images` folder, click **Add file** then
 `indy.jpg`. Click **Commit changes**. Square-ish photos look best; they show
 cropped to a circle. The site rebuilds itself in about a minute.
 
-### 3. Turn on syncing between phones (Firebase, free)
+### 3. Keeping phones in sync (no database, no accounts)
 
-Think of Firebase as a shared notepad in the cloud. Every phone reads and
-writes the same notepad, so a tap on one phone shows up on the others within
-a second. Google runs it and the free tier is far more than this app will
-ever use.
+There is no database on purpose. Each phone keeps its own copy of the walks,
+and the **Share week** button in the ledger sends a WhatsApp message like:
 
-1. Go to <https://console.firebase.google.com>, sign in with a Google account,
-   and click **Create a project**. Name it anything (for example `helm-walks`).
-   You can turn off Google Analytics when asked; it isn't needed.
-2. In the left menu open **Build** then **Realtime Database**. Click
-   **Create Database**, keep the default location, and choose
-   **Start in test mode**. Test mode locks itself after 30 days, so do step 5
-   now rather than later.
-3. Click the gear icon next to **Project Overview**, then **Project settings**.
-   Scroll down to **Your apps** and click the `</>` (web) icon. Give the app a
-   nickname, skip Firebase Hosting, and click **Register app**. Firebase shows
-   a block of code containing `apiKey`, `authDomain`, `databaseURL`,
-   `projectId`, and so on.
-4. Copy each of those values into the matching line of `config.js` in this
-   repo (between the quotes). If `databaseURL` isn't shown in the code block,
-   copy it from the top of the Realtime Database page instead; it looks like
-   `https://helm-walks-xxxxx-default-rtdb.firebaseio.com`.
-5. Back in **Realtime Database**, open the **Rules** tab, replace everything
-   with the text below, and click **Publish**:
+    HELM · Week 2 · Sep 7–11
+    9 of 10 walks · $45 owed to Anselm
 
-   ```json
-   {
-     "rules": {
-       "households": {
-         "$household": {
-           ".read": true,
-           ".write": true
-         }
-       }
-     }
-   }
-   ```
+    Open to sync your phone:
+    https://jessicapino716-png.github.io/Redesignappframes/#w=3a.3p.7a465...
 
-6. Save `config.js` in GitHub: open the file in the repo, click the pencil
-   icon, paste the values, and click **Commit changes**. Wait a minute for
-   the site to rebuild, then reload the app. The footer should change from
-   "This phone only" to "Synced".
+Whoever opens that link gets every walk in it added to their phone. Taps are
+merged, never overwritten, so if two people logged different walks before
+syncing, both sets survive. The link is small: a whole month of walks fits in
+a few hundred characters.
 
-**About privacy.** These rules let anyone who knows both the link and the
-household name (set in `config.js`) read and change the walks. There is no
-login, on purpose, so anyone in the household or Anselm can tap without an
-account. The data is only dog walks and dollar amounts, and the link is
-shared privately over WhatsApp, so this is a reasonable tradeoff.
+The routine: Anselm taps walks on his phone as he does them. Whenever he
+shares the week (Friday works), you open the link and your phone matches his.
+If you or your husband log a walk, share back the same way.
+
+**One limit.** Undoing a walk does not travel through a link (a link can only
+add). If a walk was tapped by mistake, un-tap it on every phone that has it,
+or just live with it and settle up by hand that week.
+
+**About privacy.** Anyone who has the link can see and edit the walks on
+their own phone. The link is shared privately over WhatsApp and the data is
+dog walks and dollar amounts, so that's fine.
 
 ## Sharing it
 
@@ -124,5 +93,5 @@ opens full-screen like a real app.
 ## Changing things
 
 Everything adjustable lives in `config.js`, with comments explaining each
-line: price per walk, the walker's name, which days count, and the dogs and
-their photos.
+line: price per walk, the walker's name, which days count, the dogs and their
+photos, and the walk history from before the app existed.
