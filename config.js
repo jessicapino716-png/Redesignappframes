@@ -1,10 +1,10 @@
 // ============================================================
-//  SANDWALK · SETTINGS
+//  HELM · SETTINGS
 //  This is the only file you need to edit. Change the words
 //  between the quotes, save, and reload the app.
 // ============================================================
 
-window.SANDWALK_CONFIG = {
+window.HELM_CONFIG = {
 
   // Any word or phrase. Everyone who opens the app with the same
   // household name sees the same walks. Treat it like a password:
@@ -14,7 +14,7 @@ window.SANDWALK_CONFIG = {
   // Dollars per walk.
   ratePerWalk: 5,
 
-  // The dog walker. Shows in the ring ("Owed to Anselm").
+  // The dog walker. Shows in the ring ("Owed to Anselm") and the tagline ("Anselm at the helm").
   walker: "Anselm",
 
   // The dogs. Photos live in the images folder. Until a photo is

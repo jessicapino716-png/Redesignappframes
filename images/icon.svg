@@ -1,13 +1,11 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
   <defs>
-    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0f0906"/><stop offset=".55" stop-color="#8a3a12"/><stop offset=".72" stop-color="#d0762c"/><stop offset="1" stop-color="#2c150a"/></linearGradient>
-    <radialGradient id="disc" cx=".5" cy=".4" r=".6"><stop offset="0" stop-color="#ffe2b0"/><stop offset=".6" stop-color="#ffb56b"/><stop offset="1" stop-color="#ff7a2a"/></radialGradient>
-    <radialGradient id="halo" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#ff7a2a" stop-opacity=".6"/><stop offset="1" stop-color="#ff7a2a" stop-opacity="0"/></radialGradient>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0f0906"/><stop offset="1" stop-color="#3a1a0c"/></linearGradient>
+    <radialGradient id="halo" cx=".5" cy=".58" r=".5"><stop offset="0" stop-color="#ff7a2a" stop-opacity=".45"/><stop offset="1" stop-color="#ff7a2a" stop-opacity="0"/></radialGradient>
   </defs>
   <rect width="512" height="512" fill="url(#sky)"/>
-  <circle cx="256" cy="300" r="240" fill="url(#halo)"/>
-  <circle cx="256" cy="300" r="118" fill="url(#disc)"/>
-  <path d="M0 340 C110 300 190 320 290 290 C370 266 450 270 512 300 L512 512 L0 512 Z" fill="#4e220e"/>
-  <path d="M0 400 C90 370 200 390 300 360 C390 334 460 344 512 370 L512 512 L0 512 Z" fill="#2c150a"/>
-  <path d="M0 456 C120 426 230 446 330 422 C420 402 470 410 512 430 L512 512 L0 512 Z" fill="#0f0906"/>
+  <rect width="512" height="512" fill="url(#halo)"/>
+  <path d="M116 298 A140 140 0 0 1 396 298" fill="none" stroke="#f5e6c8" stroke-width="30" stroke-linecap="round"/>
+  <circle cx="256" cy="298" r="40" fill="#ff7a2a"/>
+  <path d="M66 368 H446" fill="none" stroke="#ff7a2a" stroke-width="30" stroke-linecap="round"/>
 </svg>

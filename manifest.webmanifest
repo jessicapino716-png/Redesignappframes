@@ -1,6 +1,6 @@
 {
-  "name": "Sandwalk",
-  "short_name": "Sandwalk",
+  "name": "HELM",
+  "short_name": "HELM",
   "description": "Bear and Indy's walk log.",
   "start_url": "./",
   "display": "standalone",

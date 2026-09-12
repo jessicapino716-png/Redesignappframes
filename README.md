@@ -1,8 +1,11 @@
-# Sandwalk
+# HELM
 
-A quiet, sand-and-vanilla web app for tracking Bear and Indy's
+A Dune-poster-styled web app for tracking Bear and Indy's
 walks and what Anselm is owed at the end of the week. Works on any iPhone
 from a link, no App Store.
+
+**The name.** Anselm comes from the Germanic *ans* (divine) + *helm*
+(helmet, protection). A helm is also where you steer from. Anselm at the helm.
 
 **How it works.** Monday through Friday, two walks a day (Morning and
 Evening). Whoever is around taps a walk when it's done and the button floods
@@ -45,7 +48,7 @@ a second. Google runs it and the free tier is far more than this app will
 ever use.
 
 1. Go to <https://console.firebase.google.com>, sign in with a Google account,
-   and click **Create a project**. Name it anything (for example `sandwalk`).
+   and click **Create a project**. Name it anything (for example `helm-walks`).
    You can turn off Google Analytics when asked; it isn't needed.
 2. In the left menu open **Build** then **Realtime Database**. Click
    **Create Database**, keep the default location, and choose
@@ -59,7 +62,7 @@ ever use.
 4. Copy each of those values into the matching line of `config.js` in this
    repo (between the quotes). If `databaseURL` isn't shown in the code block,
    copy it from the top of the Realtime Database page instead; it looks like
-   `https://sandwalk-xxxxx-default-rtdb.firebaseio.com`.
+   `https://helm-walks-xxxxx-default-rtdb.firebaseio.com`.
 5. Back in **Realtime Database**, open the **Rules** tab, replace everything
    with the text below, and click **Publish**:
 
@@ -88,7 +91,7 @@ shared privately over WhatsApp, so this is a reasonable tradeoff.
 ## Sharing it
 
 Send the GitHub Pages link over WhatsApp. On an iPhone, open it in Safari, tap
-the Share button, then **Add to Home Screen**. It gets the dune icon and
+the Share button, then **Add to Home Screen**. It gets the HELM icon and
 opens full-screen like a real app.
 
 ## Changing things
