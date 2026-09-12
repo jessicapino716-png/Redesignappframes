@@ -1,31 +1,32 @@
 // ============================================================
-//  WALK GRID SETTINGS
+//  RAIDERS OF THE LOST BARK · SETTINGS
 //  This is the only file you need to edit. Change the words
 //  between the quotes, save, and reload the app.
 // ============================================================
 
-window.WALKGRID_CONFIG = {
+window.LOSTBARK_CONFIG = {
 
   // Any word or phrase. Everyone who opens the app with the same
-  // household name sees the same checkmarks. Treat it like a
-  // password: only people you share the link with should know it.
-  householdId: "baron-and-indy",
+  // household name sees the same stamps. Treat it like a password:
+  // only people you share the link with should know it.
+  householdId: "bear-and-indy",
 
   // Dollars per walk.
   ratePerWalk: 5,
 
-  // The people who can tap checkmarks. The app asks each person
-  // which name is theirs the first time they open it on their phone,
-  // then remembers. Put the walker's name here too.
-  people: ["Jessica", "Husband", "Dog Walker"],
+  // The dog walker. Shows up in the ledger ("Owed to Anselm").
+  walker: "Anselm",
 
-  // The dogs. Drop photos into the images folder with these file
-  // names and they appear in the app. Until then, the app shows the
-  // initials in a glowing ring.
+  // The dogs. Photos live in the images folder. Until a photo is
+  // there, the frame shows the dog's initial.
   dogs: [
-    { name: "Baron",         short: "BARON", photo: "images/baron.jpg" },
-    { name: "Indiana Jones", short: "INDY",  photo: "images/indy.jpg"  }
+    { name: "Bear",          short: "Bear", photo: "images/bear.jpg" },
+    { name: "Indiana Jones", short: "Indy", photo: "images/indy.jpg" }
   ],
+
+  // Optional poster art shown at the top. Delete the line or set it
+  // to "" to hide it.
+  poster: "images/poster.jpg",
 
   // Which days walks happen. 1 = Monday ... 5 = Friday, 6 = Saturday, 0 = Sunday.
   // To add Saturdays, change this to [1, 2, 3, 4, 5, 6].

@@ -1,11 +1,11 @@
 {
-  "name": "Walk Grid",
-  "short_name": "Walk Grid",
-  "description": "Baron and Indy's dog-walk tracker.",
+  "name": "Raiders of the Lost Bark",
+  "short_name": "Lost Bark",
+  "description": "Bear and Indy's walk log.",
   "start_url": "./",
   "display": "standalone",
-  "background_color": "#04070f",
-  "theme_color": "#04070f",
+  "background_color": "#f2e6cc",
+  "theme_color": "#f2e6cc",
   "icons": [
     { "src": "images/icon.svg", "sizes": "any", "type": "image/svg+xml" },
     { "src": "images/icon-180.png", "sizes": "180x180", "type": "image/png" },
