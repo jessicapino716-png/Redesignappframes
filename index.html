@@ -322,7 +322,7 @@
   const DEFAULTS = {
     householdId: 'bear-and-indy', ratePerWalk: 5, walker: 'Anselm',
     dogs: [{ name: 'Bear', photo: 'images/bear.jpg' }, { name: 'Indiana Jones', short: 'Indy', photo: 'images/indy.jpg' }],
-    days: [1, 2, 3, 4, 5], firebase: {}
+    days: [1, 2, 3, 4, 5], firebase: {}, firstWeek: '', history: {}
   };
   const CFG = Object.assign({}, DEFAULTS, window.HELM_CONFIG || {});
   const RATE = Number(CFG.ratePerWalk) || 5;
@@ -353,6 +353,22 @@
   let selected = pickDefaultDay(viewMonday);
   try { const c = localStorage.getItem(LS_KEY); if (c) state = normalize(JSON.parse(c)); } catch (e) {}
   function normalize(s) { s = s || {}; return { walks: s.walks || {}, paid: s.paid || {} }; }
+  // Fill in walks from config.history that the store doesn't have yet. Returns the paths added.
+  function applyHistory() {
+    const added = [];
+    Object.keys(CFG.history || {}).forEach(k => {
+      (CFG.history[k] || []).forEach(slot => {
+        state.walks[k] = state.walks[k] || {};
+        if (!state.walks[k][slot]) {
+          const d = parse(k); d.setHours(slot === 'am' ? 8 : 18, 0, 0, 0);
+          state.walks[k][slot] = { at: d.getTime(), seeded: true };
+          added.push('walks/' + k + '/' + slot);
+        }
+      });
+    });
+    return added;
+  }
+  applyHistory(); cache();
   function cache() { try { localStorage.setItem(LS_KEY, JSON.stringify(state)); } catch (e) {} }
   function pickDefaultDay(monday) {
     const ds = weekDates(monday).map(key);
@@ -371,7 +387,12 @@
     try {
       firebase.initializeApp(fbCfg);
       ref = firebase.database().ref('households/' + CFG.householdId);
-      ref.on('value', snap => { state = normalize(snap.val()); cache(); render(); setStatus('live', 'Synced'); },
+      let seededOnce = false;
+      ref.on('value', snap => {
+        state = normalize(snap.val());
+        if (!seededOnce) { seededOnce = true; applyHistory().forEach(pth => { const [, k, slot] = pth.split('/'); ref.child(pth).set(state.walks[k][slot]); }); }
+        cache(); render(); setStatus('live', 'Synced');
+      },
         err => { console.error(err); setStatus('error', 'Sync blocked · check rules'); });
       firebase.database().ref('.info/connected').on('value', s => { if (!s.val()) setStatus('local', 'Offline · will sync'); });
     } catch (e) { console.error(e); setStatus('error', 'Firebase settings look wrong'); }
@@ -442,7 +463,7 @@
       b.setAttribute('aria-pressed', rec ? 'true' : 'false');
       b.setAttribute('aria-label', slot.label + ' walk, ' + DAY_L[selDate.getDay()] + (rec ? ', done' : ', not done'));
       b.innerHTML = '<span class="fill"></span><span class="ico">' + slot.icon + '</span>' +
-        '<span><span class="name">' + slot.label + '</span><div class="state">' + (rec ? 'done ' + fmtTime(rec.at) : 'tap when done') + '</div></span>' +
+        '<span><span class="name">' + slot.label + '</span><div class="state">' + (rec ? (rec.seeded ? 'done' : 'done ' + fmtTime(rec.at)) : 'tap when done') + '</div></span>' +
         '<span class="check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7"/></svg></span>';
       b.addEventListener('click', e => {
         if (!rec) {
@@ -459,11 +480,17 @@
     const thisMonday = mondayOf(new Date());
     const rel = Math.round((viewMonday - thisMonday) / 864e5 / 7);
     const f = dates[0], l = dates[dates.length - 1];
-    const jan4 = new Date(viewMonday.getFullYear(), 0, 4), wk = Math.round((mondayOf(viewMonday) - mondayOf(jan4)) / 6048e5) + 1;
-    const wkLabel = 'wk ' + (wk < 1 ? 52 + wk : wk);
+    let wkLabel;
+    if (CFG.firstWeek) {
+      const wk = Math.round((viewMonday - mondayOf(parse(CFG.firstWeek))) / 6048e5) + 1;
+      wkLabel = wk >= 1 ? 'week ' + wk : 'before week 1';
+    } else {
+      const jan4 = new Date(viewMonday.getFullYear(), 0, 4), wk = Math.round((viewMonday - mondayOf(jan4)) / 6048e5) + 1;
+      wkLabel = 'wk ' + (wk < 1 ? 52 + wk : wk);
+    }
     bd.innerHTML = MON[f.getMonth()].toUpperCase() + ' ' + f.getDate() + ' <span>\u2014</span> ' + MON[l.getMonth()].toUpperCase() + ' ' + l.getDate() + ' <span>\u2014</span> ' + f.getFullYear();
     weekLabel.innerHTML = MON[f.getMonth()] + ' ' + f.getDate() + ' – ' + (l.getMonth() !== f.getMonth() ? MON[l.getMonth()] + ' ' : '') + l.getDate() +
-      '<small>' + (rel === 0 ? 'this week' : rel === -1 ? 'last week' : rel === 1 ? 'next week' : Math.abs(rel) + ' weeks ' + (rel < 0 ? 'ago' : 'ahead')) + ' · ' + wkLabel + '</small>';
+      '<small>' + wkLabel + ' · ' + (rel === 0 ? 'this week' : rel === -1 ? 'last week' : rel === 1 ? 'next week' : Math.abs(rel) + ' weeks ' + (rel < 0 ? 'ago' : 'ahead')) + '</small>';
     strip.innerHTML = '';
     dates.forEach(d => {
       const k = key(d), w = state.walks[k] || {};

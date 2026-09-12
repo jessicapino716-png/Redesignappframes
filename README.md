@@ -7,6 +7,10 @@ from a link, no App Store.
 **The name.** Anselm comes from the Germanic *ans* (divine) + *helm*
 (helmet, protection). A helm is also where you steer from. Anselm at the helm.
 
+**Week numbers.** Week 1 is the week of Aug 31, 2026, Anselm's first week.
+Walks from before the app existed are listed in `config.js` under `history`
+so the totals are right from day one.
+
 **How it works.** Monday through Friday, two walks a day (Morning and
 Evening). Whoever is around taps a walk when it's done and the button floods
 with color and records the time. The week sits underneath as a strip; tap any
@@ -26,19 +30,30 @@ week never marked paid shows up as a carry-over so nothing gets lost.
 
 ### 1. Put it on the web (GitHub Pages)
 
-1. In this GitHub repo, click **Settings** then **Pages** in the left sidebar.
-2. Under **Build and deployment**, set Source to **Deploy from a branch**,
-   pick the `main` branch and the `/ (root)` folder, and click **Save**.
-3. Wait a minute, then reload. GitHub shows the address, something like
-   `https://YOURNAME.github.io/REPO-NAME/`. That is the link you share.
+This happens automatically. Every time something lands on the `main` branch,
+GitHub rebuilds the site (see `.github/workflows/pages.yml`). The link is:
+
+    https://jessicapino716-png.github.io/redesignappframes/
+
+If the link ever shows a 404, open **Settings** then **Pages** in the repo and
+make sure Source is set to **GitHub Actions**. That is the only setting.
 
 Until step 3 below is done, the app runs in "this phone only" mode: it works,
 but each phone keeps its own walks.
 
+**Why a database at all, if it's just a web page?** A web page is like a
+printed poster: every phone that opens the link gets its own copy, and
+anything you write on your copy stays on your copy. For Anselm's tap to
+show up on your phone, all three copies have to write to one shared place on
+the internet. That shared place is the database. Firebase is Google's free
+one, and it needs about five minutes of clicking once.
+
 ### 2. Photos
 
-Replace `images/bear.jpg` and `images/indy.jpg` with any photos you like
-(square-ish looks best; they show cropped to a circle).
+On the repo page, open the `images` folder, click **Add file** then
+**Upload files**, and drop in two photos named exactly `bear.jpg` and
+`indy.jpg`. Click **Commit changes**. Square-ish photos look best; they show
+cropped to a circle. The site rebuilds itself in about a minute.
 
 ### 3. Turn on syncing between phones (Firebase, free)
 
@@ -79,7 +94,9 @@ ever use.
    }
    ```
 
-6. Commit `config.js`. Reload the app. The footer should change from
+6. Save `config.js` in GitHub: open the file in the repo, click the pencil
+   icon, paste the values, and click **Commit changes**. Wait a minute for
+   the site to rebuild, then reload the app. The footer should change from
    "This phone only" to "Synced".
 
 **About privacy.** These rules let anyone who knows both the link and the

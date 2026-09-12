@@ -24,6 +24,22 @@ window.HELM_CONFIG = {
     { name: "Indiana Jones", short: "Indy", photo: "images/indy.jpg" }
   ],
 
+  // The Monday of Anselm's first week. Week numbers count from here
+  // (that week is "Week 1").
+  firstWeek: "2026-08-31",
+
+  // Walks that happened before the app existed, so the history and
+  // totals are right from day one. Format: "YYYY-MM-DD": ["am", "pm"].
+  // You never need to touch this again; new walks are tapped in the app.
+  history: {
+    "2026-09-03": ["am", "pm"],
+    "2026-09-07": ["am", "pm"],
+    "2026-09-08": ["am", "pm"],
+    "2026-09-09": ["am", "pm"],
+    "2026-09-10": ["am", "pm"],
+    "2026-09-11": ["am"]
+  },
+
   // Which days walks happen. 1 = Monday ... 5 = Friday, 6 = Saturday, 0 = Sunday.
   // To add Saturdays, change this to [1, 2, 3, 4, 5, 6].
   days: [1, 2, 3, 4, 5],
