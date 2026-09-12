@@ -25,7 +25,7 @@ week never marked paid shows up as a carry-over so nothing gets lost.
 | --- | --- |
 | `index.html` | The whole app. You should never need to touch it. |
 | `config.js` | Names, price per walk, days, and the walk history. **This is the one file you edit.** |
-| `images/bear.jpg`, `images/indy.jpg` | The dogs' photos, shown in the circles at the top. |
+| `images/bear.jpg`, `images/indy.jpg` | The dogs' portraits, shown in the circles at the top. |
 
 ## Setup (about five minutes, no coding)
 
@@ -49,12 +49,16 @@ That is the link to share. Every later change (photos, settings) goes live on
 its own within a minute or two.
 
 
-### 2. Photos
+### 2. Photos (already done, but swappable)
 
-On the repo page, open the `images` folder, click **Add file** then
-**Upload files**, and drop in two photos named exactly `bear.jpg` and
-`indy.jpg`. Click **Commit changes**. Square-ish photos look best; they show
-cropped to a circle. The site rebuilds itself in about a minute.
+The two circles at the top show hand-drawn retro portraits of Bear and Indy,
+stored as `images/bear.jpg` and `images/indy.jpg`.
+
+To use real photos instead: on the repo page open the `images` folder, click
+**Add file** then **Upload files**, and drop in two photos named exactly
+`bear.jpg` and `indy.jpg` so they replace the drawings. Click
+**Commit changes**. Square-ish photos look best; they show cropped to a
+circle. The site updates itself in about a minute.
 
 ### 3. Keeping phones in sync (no database, no accounts)
 
