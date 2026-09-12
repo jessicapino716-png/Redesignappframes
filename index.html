@@ -224,6 +224,31 @@
   .billing .date { margin-top: 14px; font-family: var(--font-display); font-size: 12px; letter-spacing: .5em; text-indent: .5em; color: var(--vanilla); }
   .billing .date span { color: var(--spice); }
 
+  /* ---------- paste dialog ---------- */
+  dialog#pasteDlg {
+    width: min(92vw, 400px); border: 1px solid var(--glass-edge); border-radius: 22px; padding: 22px 20px;
+    background: #170c06; color: var(--vanilla); box-shadow: 0 30px 60px -20px #000;
+  }
+  dialog#pasteDlg::backdrop { background: rgba(5,2,1,.78); backdrop-filter: blur(3px); }
+  dialog#pasteDlg h2 {
+    margin: 0 0 6px; font-family: var(--font-display); font-size: 13px; letter-spacing: .28em;
+    text-transform: uppercase; color: var(--glow);
+  }
+  dialog#pasteDlg p { margin: 0 0 14px; font-size: 14px; color: var(--muted); line-height: 1.4; }
+  dialog#pasteDlg textarea {
+    width: 100%; border-radius: 14px; padding: 12px; font-family: var(--font-body); font-size: 15px;
+    background: rgba(255,200,150,.07); color: var(--vanilla); border: 1px solid rgba(255,190,130,.22); resize: vertical;
+  }
+  dialog#pasteDlg textarea:focus { outline: 2px solid var(--spice); outline-offset: 1px; }
+  dialog#pasteDlg .note { min-height: 20px; margin-top: 8px; font-size: 13.5px; color: var(--glow); }
+  dialog#pasteDlg .note.bad { color: #ff8a7a; }
+  dialog#pasteDlg .row { display: flex; gap: 10px; margin-top: 12px; }
+  dialog#pasteDlg .row button {
+    flex: 1; height: 46px; border-radius: 14px; background: var(--spice); color: var(--night);
+    font-family: var(--font-display); font-size: 10px; letter-spacing: .24em; text-transform: uppercase; font-weight: 700;
+  }
+  dialog#pasteDlg .row button.ghost { background: transparent; color: var(--sand); box-shadow: inset 0 0 0 1px rgba(255,190,130,.28); }
+
   .status {
     display: flex; align-items: center; justify-content: center; gap: 8px; padding-top: 12px;
     font-family: var(--font-display); font-size: 8px; letter-spacing: .34em; color: var(--dim); text-transform: uppercase;
@@ -298,6 +323,7 @@
     <div class="side">
       <div class="walks"><b id="walkCount">0</b> <span id="walkMax">of 10</span><br>walks this week</div>
       <button class="payBtn" id="payBtn">Mark week paid</button>
+      <button class="shareBtn" id="pasteBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 12v7a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-7"/><path d="M8 9l4 4 4-4"/><path d="M12 13V2"/></svg>Add from link</button>
       <button class="shareBtn" id="shareBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7"/><path d="M16 6l-4-4-4 4"/><path d="M12 2v13"/></svg>Share week</button>
     </div>
     <div class="carry" id="carry"><span id="carryText"></span><b id="carryAmt"></b></div>
@@ -318,6 +344,18 @@
     <div class="row" id="billing2"></div>
     <div class="date" id="billingDate"></div>
   </section>
+
+  <dialog id="pasteDlg">
+    <h2>Add from a link</h2>
+    <p>Paste the whole message Anselm sent, or just the link in it. Every walk it
+      carries gets added to this phone. Nothing already here is lost.</p>
+    <textarea id="pasteInput" rows="4" placeholder="Paste here" autocomplete="off" spellcheck="false"></textarea>
+    <div class="note" id="pasteNote"></div>
+    <div class="row">
+      <button id="pasteCancel" class="ghost">Cancel</button>
+      <button id="pasteGo">Add walks</button>
+    </div>
+  </dialog>
 
   <footer class="status local" id="status"><span class="dot"></span><span id="statusText">Connecting</span></footer>
 </main>
@@ -646,6 +684,30 @@
     } catch (e) { if (e && e.name === 'AbortError') return; }
     try { await navigator.clipboard.writeText(text); setStatus('copied', 'Copied · paste it into WhatsApp'); return; } catch (e) {}
     location.href = 'https://wa.me/?text=' + encodeURIComponent(text);
+  });
+
+  const pasteDlg = document.getElementById('pasteDlg');
+  const pasteInput = document.getElementById('pasteInput');
+  const pasteNote = document.getElementById('pasteNote');
+  document.getElementById('pasteBtn').addEventListener('click', () => {
+    pasteInput.value = ''; pasteNote.textContent = ''; pasteNote.className = 'note';
+    pasteDlg.showModal(); setTimeout(() => pasteInput.focus(), 50);
+  });
+  document.getElementById('pasteCancel').addEventListener('click', () => pasteDlg.close());
+  document.getElementById('pasteGo').addEventListener('click', () => {
+    const txt = (pasteInput.value || '').trim();
+    const frag = txt.includes('#') ? txt.slice(txt.lastIndexOf('#')) : txt;
+    if (!/\bw=/.test(frag)) {
+      pasteNote.className = 'note bad';
+      pasteNote.textContent = 'That is not a sync link. Copy the message again, including the web address at the end.';
+      return;
+    }
+    const inc = decodeState(frag);
+    if (!inc) { pasteNote.className = 'note bad'; pasteNote.textContent = 'That link has no walks in it.'; return; }
+    const added = mergeIn(inc); cache(); render();
+    pasteDlg.close();
+    setStatus('local', added ? 'Added ' + added + ' ' + (added === 1 ? 'entry' : 'entries') + ' from the link' : 'Already up to date');
+    setTimeout(() => setStatus('local', 'Saved on this phone · share to sync others'), 6000);
   });
 
   payBtn.addEventListener('click', () => { const mk = key(viewMonday); write('paid/' + mk, state.paid[mk] ? null : { at: Date.now() }); });
