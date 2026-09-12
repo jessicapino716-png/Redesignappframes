@@ -4,8 +4,8 @@
   "description": "Bear and Indy's walk log.",
   "start_url": "./",
   "display": "standalone",
-  "background_color": "#efe4cc",
-  "theme_color": "#efe4cc",
+  "background_color": "#0f0906",
+  "theme_color": "#0f0906",
   "icons": [
     { "src": "images/icon.svg", "sizes": "any", "type": "image/svg+xml" },
     { "src": "images/icon-180.png", "sizes": "180x180", "type": "image/png" },
