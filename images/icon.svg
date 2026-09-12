@@ -1,22 +1,12 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
   <defs>
-    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#faf3e3"/><stop offset="1" stop-color="#dec79c"/></linearGradient>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f4ead4"/><stop offset="1" stop-color="#e3d1ae"/></linearGradient>
+    <radialGradient id="sun" cx="0.72" cy="0.26" r="0.32"><stop offset="0" stop-color="#ffedc4"/><stop offset="1" stop-color="#ffedc4" stop-opacity="0"/></radialGradient>
   </defs>
   <rect width="512" height="512" fill="url(#sky)"/>
-  <!-- dunes -->
-  <path d="M0 380 C120 330 200 350 300 320 C380 296 450 300 512 330 L512 512 L0 512 Z" fill="#c9ad7c"/>
-  <path d="M0 430 C100 400 220 420 330 390 C420 366 470 380 512 400 L512 512 L0 512 Z" fill="#b8975f"/>
-  <!-- sun -->
-  <circle cx="400" cy="120" r="54" fill="#c99a3c" opacity=".85"/>
-  <!-- fedora -->
-  <g transform="translate(256 250)">
-    <path d="M-110 30 Q-120 50 -60 62 Q0 74 60 62 Q120 50 110 30 Q60 46 0 44 Q-60 46 -110 30 Z" fill="#5a3a22"/>
-    <path d="M-72 30 Q-80 -50 -30 -62 Q0 -70 30 -62 Q80 -50 72 30 Q0 44 -72 30 Z" fill="#7a4f2c"/>
-    <path d="M-30 -62 Q0 -40 30 -62 Q10 -74 -30 -62 Z" fill="#5a3a22"/>
-    <path d="M-74 14 Q0 30 74 14 L74 30 Q0 44 -74 30 Z" fill="#3e2a1b"/>
-  </g>
-  <!-- red X, treasure map -->
-  <g stroke="#b8382c" stroke-width="22" stroke-linecap="round">
-    <line x1="80" y1="400" x2="140" y2="460"/><line x1="140" y1="400" x2="80" y2="460"/>
-  </g>
+  <rect width="512" height="512" fill="url(#sun)"/>
+  <circle cx="368" cy="134" r="46" fill="#c9622a"/>
+  <path d="M0 330 C110 290 190 300 290 270 C370 246 450 250 512 280 L512 512 L0 512 Z" fill="#e3d1ae"/>
+  <path d="M0 390 C90 360 200 380 300 350 C390 324 460 334 512 360 L512 512 L0 512 Z" fill="#cdb287"/>
+  <path d="M0 450 C120 420 230 440 330 416 C420 396 470 404 512 424 L512 512 L0 512 Z" fill="#b39769"/>
 </svg>
