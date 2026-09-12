@@ -28,15 +28,25 @@ week never marked paid shows up as a carry-over so nothing gets lost.
 
 ## Setup (about 15 minutes, no coding)
 
-### 1. Put it on the web (GitHub Pages)
+### 1. Put it on the web (GitHub Pages, two settings)
 
-This happens automatically. Every time something lands on the `main` branch,
-GitHub rebuilds the site (see `.github/workflows/pages.yml`). The link is:
+GitHub hosts the page for free, but only for **public** repos on a free
+account. This repo is private right now, so:
 
-    https://jessicapino716-png.github.io/redesignappframes/
+1. In the repo click **Settings**. Scroll to the bottom ("Danger Zone"),
+   click **Change visibility**, choose **Public**, and confirm. Nothing in
+   here is secret: the Firebase values are meant to be public, and the
+   household name only matters together with the link.
+2. Still in **Settings**, click **Pages** in the left sidebar. Under
+   **Build and deployment**, set Source to **Deploy from a branch**, pick
+   `main` and `/ (root)`, and click **Save**.
 
-If the link ever shows a 404, open **Settings** then **Pages** in the repo and
-make sure Source is set to **GitHub Actions**. That is the only setting.
+A minute later the app is live at:
+
+    https://jessicapino716-png.github.io/Redesignappframes/
+
+That is the link to share. Every later change to `main` (photos, settings)
+goes live on its own within a minute or two.
 
 Until step 3 below is done, the app runs in "this phone only" mode: it works,
 but each phone keeps its own walks.
