@@ -1,15 +1,578 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Walk Grid</title>
+<meta name="description" content="Baron and Indy's dog-walk tracker. Tap a walk when it's done; the grid keeps the tally.">
+<meta name="theme-color" content="#04070f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Walk Grid">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="images/icon-180.png">
+<link rel="icon" href="images/icon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@500;600;700&display=swap">
+<style>
+  /* ---------- tokens: one deliberate world, always dark ---------- */
+  :root {
+    --ground: #04070f;
+    --ground-2: #080e1c;
+    --panel: rgba(8, 18, 34, 0.72);
+    --line: rgba(0, 229, 255, 0.22);
+    --line-strong: rgba(0, 229, 255, 0.55);
+    --cyan: #00e5ff;
+    --cyan-soft: #7df9ff;
+    --orange: #ff7a1a;
+    --orange-soft: #ffb36b;
+    --text: #dff7ff;
+    --muted: #6f93a6;
+    --dim: #3a5566;
+    --ok: #63ffb0;
+    --font-display: "Orbitron", "Arial Black", Impact, sans-serif;
+    --font-body: "Rajdhani", "Helvetica Neue", Arial, sans-serif;
+    --chamfer: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px);
+    --chamfer-sm: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--text);
+    font-family: var(--font-body);
+    font-size: 17px;
+    line-height: 1.35;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+  button { font: inherit; color: inherit; cursor: pointer; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+  button:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--cyan-soft); outline-offset: 3px; }
 
-  <!DOCTYPE html>
-  <html lang="en">
-    <head>
-      <meta charset="UTF-8" />
-      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-      <title>Redesign App Frames</title>
-    </head>
+  /* ---------- the grid floor ---------- */
+  #grid {
+    position: fixed; inset: 0; width: 100%; height: 100%;
+    z-index: 0; display: block; pointer-events: none;
+  }
+  .glow-horizon {
+    position: fixed; left: 0; right: 0; top: 46%; height: 2px; z-index: 0; pointer-events: none;
+    background: linear-gradient(90deg, transparent, var(--cyan) 30%, var(--cyan-soft) 50%, var(--cyan) 70%, transparent);
+    filter: blur(1px); opacity: .6;
+    box-shadow: 0 0 24px 4px rgba(0, 229, 255, .35);
+  }
 
-    <body>
-      <div id="root"></div>
-      <script type="module" src="/src/main.tsx"></script>
-    </body>
-  </html>
-  
+  /* ---------- app shell ---------- */
+  .app {
+    position: relative; z-index: 1;
+    max-width: 480px; margin: 0 auto;
+    padding-block: max(14px, env(safe-area-inset-top)) max(28px, env(safe-area-inset-bottom));
+    padding-inline: 16px;
+    display: flex; flex-direction: column; gap: 18px;
+    min-height: 100%;
+  }
+
+  header {
+    display: flex; align-items: flex-end; justify-content: space-between; gap: 12px;
+  }
+  .eyebrow {
+    font-family: var(--font-display); font-size: 10px; letter-spacing: .28em;
+    color: var(--muted); text-transform: uppercase;
+  }
+  h1 {
+    margin: 4px 0 0; font-family: var(--font-display); font-weight: 900;
+    font-size: clamp(26px, 8vw, 34px); letter-spacing: .12em; line-height: 1;
+    color: #fff;
+    text-shadow: 0 0 8px rgba(0, 229, 255, .9), 0 0 28px rgba(0, 229, 255, .45);
+  }
+  .who {
+    background: var(--panel); border: 1px solid var(--line-strong); clip-path: var(--chamfer-sm);
+    padding: 8px 12px 7px; font-family: var(--font-display); font-size: 11px; letter-spacing: .14em;
+    text-transform: uppercase; color: var(--cyan-soft); display: inline-flex; align-items: center; gap: 8px;
+    white-space: nowrap;
+  }
+  .who::before { content: ""; width: 7px; height: 7px; background: var(--cyan); box-shadow: 0 0 10px var(--cyan); }
+
+  /* ---------- dogs ---------- */
+  .dogs {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 14px;
+  }
+  .dog {
+    margin: 0; display: flex; flex-direction: column; align-items: center; gap: 10px;
+    padding: 16px 10px 12px; background: var(--panel); border: 1px solid var(--line);
+    clip-path: var(--chamfer); position: relative; overflow: hidden;
+  }
+  .dog::after {
+    content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 2px;
+    background: var(--c); box-shadow: 0 0 14px var(--c); opacity: .9;
+  }
+  .dog.cyan { --c: var(--cyan); --c-soft: var(--cyan-soft); }
+  .dog.orange { --c: var(--orange); --c-soft: var(--orange-soft); }
+  .ring {
+    position: relative; width: 108px; height: 108px; max-width: 100%; border-radius: 50%;
+    display: grid; place-items: center;
+  }
+  .ring .orbit {
+    position: absolute; inset: 0; border-radius: 50%;
+    border: 2px dashed var(--c); opacity: .85;
+    animation: spin 14s linear infinite;
+    filter: drop-shadow(0 0 6px var(--c));
+  }
+  .ring .orbit.inner {
+    inset: 7px; border: 1.5px solid transparent;
+    border-top-color: var(--c-soft); border-right-color: var(--c-soft);
+    animation: spin 5s linear infinite reverse; opacity: 1;
+  }
+  .ring .frame {
+    width: 84px; height: 84px; border-radius: 50%; overflow: hidden;
+    background: radial-gradient(circle at 50% 35%, #0e1d33, #050a14 70%);
+    border: 1px solid var(--line-strong); display: grid; place-items: center;
+    box-shadow: inset 0 0 26px rgba(0, 229, 255, .18), 0 0 18px color-mix(in srgb, var(--c) 45%, transparent);
+  }
+  .ring img { width: 100%; height: 100%; object-fit: cover; display: block; filter: saturate(1.05) contrast(1.05); }
+  .ring img.missing { display: none; }
+  .ring .fallback {
+    display: none; font-family: var(--font-display); font-weight: 900; font-size: 30px; letter-spacing: .04em;
+    color: var(--c-soft); text-shadow: 0 0 10px var(--c);
+  }
+  .ring img.missing + .fallback { display: block; }
+  .ring.walked .frame { box-shadow: inset 0 0 26px rgba(0,229,255,.18), 0 0 30px var(--c), 0 0 60px color-mix(in srgb, var(--c) 40%, transparent); }
+  .dog figcaption {
+    font-family: var(--font-display); font-weight: 700; font-size: 13px; letter-spacing: .22em; color: var(--c-soft);
+    text-shadow: 0 0 10px color-mix(in srgb, var(--c) 60%, transparent);
+  }
+  .dog .today-count {
+    font-size: 12px; letter-spacing: .18em; color: var(--muted); text-transform: uppercase; margin-top: -6px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ---------- week ---------- */
+  .week { display: flex; flex-direction: column; gap: 10px; }
+  .weeknav {
+    display: grid; grid-template-columns: 44px 1fr 44px; align-items: center; gap: 8px;
+  }
+  .weeknav button {
+    height: 40px; background: var(--panel); border: 1px solid var(--line-strong); clip-path: var(--chamfer-sm);
+    color: var(--cyan-soft); font-size: 18px;
+  }
+  .weeknav .label {
+    text-align: center; font-family: var(--font-display); font-size: 12px; letter-spacing: .2em; color: var(--text);
+  }
+  .weeknav .label small { display: block; font-family: var(--font-body); font-size: 12px; letter-spacing: .16em; color: var(--muted); margin-top: 3px; text-transform: uppercase; }
+
+  .days { display: flex; flex-direction: column; gap: 8px; }
+  .day {
+    display: grid; grid-template-columns: 64px 1fr 1fr; gap: 8px; align-items: stretch;
+    padding: 6px; background: var(--panel); border: 1px solid var(--line); clip-path: var(--chamfer);
+    position: relative;
+  }
+  .day.today { border-color: var(--line-strong); box-shadow: inset 0 0 0 1px rgba(0,229,255,.18), 0 0 18px rgba(0,229,255,.12); }
+  .day.today .dname b { color: var(--cyan-soft); text-shadow: 0 0 10px var(--cyan); }
+  .day.future { opacity: .55; }
+  .dname { display: flex; flex-direction: column; justify-content: center; padding-left: 8px; }
+  .dname b { font-family: var(--font-display); font-size: 12px; letter-spacing: .2em; color: var(--text); }
+  .dname span { font-size: 22px; font-weight: 700; color: var(--muted); font-variant-numeric: tabular-nums; line-height: 1; margin-top: 3px; }
+  .dname i { font-style: normal; font-size: 10px; letter-spacing: .2em; color: var(--cyan); text-transform: uppercase; margin-top: 4px; }
+
+  .walk {
+    position: relative; min-height: 62px; border: 1px solid var(--dim); background: rgba(4, 9, 18, .7);
+    clip-path: var(--chamfer-sm); display: flex; flex-direction: column; align-items: flex-start; justify-content: center;
+    gap: 2px; padding: 8px 10px; text-align: left; transition: background .18s, border-color .18s, box-shadow .18s;
+  }
+  .walk .t { font-family: var(--font-display); font-size: 12px; letter-spacing: .18em; color: var(--muted); display: inline-flex; align-items: center; gap: 7px; }
+  .walk .t::before { content: ""; width: 8px; height: 8px; border: 1px solid currentColor; transform: rotate(45deg); }
+  .walk small { font-size: 12px; letter-spacing: .06em; color: var(--dim); min-height: 14px; }
+  .walk .check {
+    position: absolute; right: 10px; top: 50%; transform: translateY(-50%) scale(.6); opacity: 0;
+    font-size: 22px; line-height: 1; transition: transform .2s cubic-bezier(.2,1.6,.4,1), opacity .2s;
+  }
+  .walk.am { --c: var(--cyan); --c-soft: var(--cyan-soft); }
+  .walk.pm { --c: var(--orange); --c-soft: var(--orange-soft); }
+  .walk.done {
+    border-color: var(--c); background: color-mix(in srgb, var(--c) 14%, rgba(4, 9, 18, .8));
+    box-shadow: 0 0 16px color-mix(in srgb, var(--c) 45%, transparent), inset 0 0 18px color-mix(in srgb, var(--c) 18%, transparent);
+  }
+  .walk.done .t { color: var(--c-soft); text-shadow: 0 0 8px var(--c); }
+  .walk.done .t::before { background: var(--c); border-color: var(--c); box-shadow: 0 0 8px var(--c); }
+  .walk.done small { color: var(--c-soft); opacity: .85; }
+  .walk.done .check { opacity: 1; transform: translateY(-50%) scale(1); color: var(--c-soft); text-shadow: 0 0 10px var(--c); }
+  .walk.pulse { animation: pulse .45s ease-out; }
+  @keyframes pulse { 0% { box-shadow: 0 0 0 0 var(--c); } 100% { box-shadow: 0 0 0 14px transparent; } }
+
+  /* ---------- ledger ---------- */
+  .ledger {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+    padding: 14px; background: var(--panel); border: 1px solid var(--line-strong); clip-path: var(--chamfer);
+    position: relative;
+  }
+  .ledger::before {
+    content: ""; position: absolute; inset: 0 0 auto 0; height: 2px;
+    background: linear-gradient(90deg, var(--cyan), var(--orange)); opacity: .8;
+  }
+  .stat { display: flex; flex-direction: column; gap: 4px; }
+  .stat .lbl { font-family: var(--font-display); font-size: 10px; letter-spacing: .24em; color: var(--muted); text-transform: uppercase; }
+  .stat b { font-family: var(--font-display); font-weight: 700; font-size: 24px; font-variant-numeric: tabular-nums; color: var(--text); }
+  .stat.owed b { font-size: 40px; font-weight: 900; color: #fff; text-shadow: 0 0 12px rgba(0,229,255,.9), 0 0 40px rgba(0,229,255,.4); line-height: 1; }
+  .stat.owed.settled b { color: var(--ok); text-shadow: 0 0 12px rgba(99,255,176,.8); font-size: 26px; letter-spacing: .12em; }
+  .stat b sub { font-size: 12px; font-weight: 500; color: var(--muted); vertical-align: baseline; font-family: var(--font-body); letter-spacing: .1em; }
+  .paid {
+    grid-column: 1 / -1; height: 52px; margin-top: 2px;
+    background: transparent; border: 1px solid var(--cyan); clip-path: var(--chamfer-sm);
+    font-family: var(--font-display); font-size: 13px; letter-spacing: .24em; text-transform: uppercase; color: var(--cyan-soft);
+    box-shadow: inset 0 0 20px rgba(0,229,255,.12), 0 0 14px rgba(0,229,255,.25);
+  }
+  .paid.settled { border-color: var(--ok); color: var(--ok); box-shadow: inset 0 0 20px rgba(99,255,176,.12); }
+  .paid:disabled { opacity: .4; cursor: default; box-shadow: none; }
+  .carry {
+    grid-column: 1 / -1; display: none; justify-content: space-between; align-items: center; gap: 10px;
+    padding: 10px 12px; border: 1px dashed var(--orange); color: var(--orange-soft); font-size: 14px; letter-spacing: .06em;
+    clip-path: var(--chamfer-sm); background: rgba(255,122,26,.06);
+  }
+  .carry.show { display: flex; }
+  .carry b { font-family: var(--font-display); font-size: 16px; }
+
+  /* ---------- status ---------- */
+  .status {
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    font-family: var(--font-display); font-size: 10px; letter-spacing: .26em; color: var(--muted); text-transform: uppercase;
+  }
+  .status .dot { width: 8px; height: 8px; background: var(--dim); box-shadow: none; transform: rotate(45deg); }
+  .status.live .dot { background: var(--ok); box-shadow: 0 0 10px var(--ok); animation: blink 2.4s ease-in-out infinite; }
+  .status.local .dot { background: var(--orange); box-shadow: 0 0 10px var(--orange); }
+  .status.error .dot { background: #ff3b5c; box-shadow: 0 0 10px #ff3b5c; }
+  @keyframes blink { 50% { opacity: .35; } }
+
+  /* ---------- who dialog ---------- */
+  dialog {
+    background: var(--ground-2); color: var(--text); border: 1px solid var(--line-strong); clip-path: var(--chamfer);
+    padding: 22px 20px; width: min(92vw, 380px); max-width: 100%;
+  }
+  dialog::backdrop { background: rgba(2, 5, 12, .8); backdrop-filter: blur(3px); }
+  dialog h2 { margin: 0 0 4px; font-family: var(--font-display); font-size: 16px; letter-spacing: .2em; color: #fff; text-shadow: 0 0 10px var(--cyan); }
+  dialog p { margin: 0 0 16px; color: var(--muted); font-size: 15px; }
+  .people { display: flex; flex-direction: column; gap: 8px; }
+  .people button {
+    height: 52px; background: var(--panel); border: 1px solid var(--line-strong); clip-path: var(--chamfer-sm);
+    font-family: var(--font-display); font-size: 13px; letter-spacing: .18em; text-transform: uppercase; color: var(--cyan-soft);
+  }
+  .people button.current { border-color: var(--cyan); box-shadow: 0 0 14px rgba(0,229,255,.35); color: #fff; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .ring .orbit, .status.live .dot, .walk.pulse { animation: none !important; }
+  }
+  @media (max-width: 360px) {
+    .day { grid-template-columns: 54px 1fr 1fr; }
+    .ring { width: 92px; height: 92px; } .ring .frame { width: 70px; height: 70px; }
+  }
+</style>
+</head>
+<body>
+<canvas id="grid" aria-hidden="true"></canvas>
+<div class="glow-horizon" aria-hidden="true"></div>
+
+<main class="app">
+  <header>
+    <div>
+      <div class="eyebrow">Program // Dog Walk Ledger</div>
+      <h1>WALK GRID</h1>
+    </div>
+    <button class="who" id="whoBtn" aria-label="Change who is tapping">—</button>
+  </header>
+
+  <section class="dogs" id="dogs" aria-label="The dogs"></section>
+
+  <section class="week" aria-label="This week's walks">
+    <div class="weeknav">
+      <button id="prevWeek" aria-label="Previous week">◀</button>
+      <div class="label" id="weekLabel">—</div>
+      <button id="nextWeek" aria-label="Next week">▶</button>
+    </div>
+    <div class="days" id="days"></div>
+  </section>
+
+  <section class="ledger" aria-label="What is owed">
+    <div class="stat"><span class="lbl">Walks logged</span><b id="walkCount">0<sub id="walkMax"> / 10</sub></b></div>
+    <div class="stat owed" id="owedStat"><span class="lbl" id="owedLbl">Owed this week</span><b id="owed">$0</b></div>
+    <button class="paid" id="paidBtn">Mark week paid</button>
+    <div class="carry" id="carry"><span id="carryText"></span><b id="carryAmt"></b></div>
+  </section>
+
+  <footer class="status local" id="status"><span class="dot"></span><span id="statusText">Connecting</span></footer>
+</main>
+
+<dialog id="whoDlg">
+  <h2>Identify yourself</h2>
+  <p>Your name shows next to every walk you mark. The grid remembers your pick on this phone.</p>
+  <div class="people" id="people"></div>
+</dialog>
+
+<script src="config.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  // ---------- config ----------
+  const DEFAULTS = {
+    householdId: 'baron-and-indy', ratePerWalk: 5,
+    people: ['Jessica', 'Husband', 'Dog Walker'],
+    dogs: [{ name: 'Baron', short: 'BARON', photo: 'images/baron.jpg' }, { name: 'Indiana Jones', short: 'INDY', photo: 'images/indy.jpg' }],
+    days: [1, 2, 3, 4, 5], firebase: {}
+  };
+  const CFG = Object.assign({}, DEFAULTS, window.WALKGRID_CONFIG || {});
+  const RATE = Number(CFG.ratePerWalk) || 5;
+  const DAYS = (CFG.days && CFG.days.length ? CFG.days : DEFAULTS.days).slice().sort((a, b) => ((a + 6) % 7) - ((b + 6) % 7));
+  const SLOTS = [{ id: 'am', label: 'AM' }, { id: 'pm', label: 'PM' }];
+  const LS_KEY = 'walkgrid:' + CFG.householdId;
+  const WHO_KEY = 'walkgrid:who';
+
+  // ---------- date helpers ----------
+  const pad = n => String(n).padStart(2, '0');
+  const key = d => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+  const parse = k => { const [y, m, d] = k.split('-').map(Number); return new Date(y, m - 1, d); };
+  const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
+  const mondayOf = d => { const x = new Date(d.getFullYear(), d.getMonth(), d.getDate()); return addDays(x, -((x.getDay() + 6) % 7)); };
+  const DAY_NAMES = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+  const MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+  const fmtTime = ms => new Date(ms).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+  const initials = name => name.split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase();
+
+  // ---------- state ----------
+  let state = { walks: {}, paid: {} };
+  let viewMonday = mondayOf(new Date());
+  let who = null;
+  try { who = localStorage.getItem(WHO_KEY); } catch (e) {}
+  try { const cached = localStorage.getItem(LS_KEY); if (cached) state = normalize(JSON.parse(cached)); } catch (e) {}
+
+  function normalize(s) { s = s || {}; return { walks: s.walks || {}, paid: s.paid || {} }; }
+  function cache() { try { localStorage.setItem(LS_KEY, JSON.stringify(state)); } catch (e) {} }
+
+  // ---------- storage: firebase if configured, else this phone only ----------
+  const fb = CFG.firebase || {};
+  const hasFirebase = typeof firebase !== 'undefined' && fb.apiKey && fb.databaseURL;
+  let ref = null;
+  const statusEl = document.getElementById('status');
+  const statusText = document.getElementById('statusText');
+  function setStatus(mode, text) { statusEl.className = 'status ' + mode; statusText.textContent = text; }
+
+  if (hasFirebase) {
+    try {
+      firebase.initializeApp(fb);
+      ref = firebase.database().ref('households/' + CFG.householdId);
+      ref.on('value', snap => { state = normalize(snap.val()); cache(); render(); setStatus('live', 'Grid online · synced'); },
+        err => { console.error(err); setStatus('error', 'Sync blocked · check database rules'); });
+      firebase.database().ref('.info/connected').on('value', s => { if (!s.val()) setStatus('local', 'Offline · will sync'); });
+    } catch (e) { console.error(e); setStatus('error', 'Firebase settings look wrong'); }
+  } else {
+    setStatus('local', typeof firebase === 'undefined' && fb.apiKey ? 'Sync library blocked · this phone only' : 'This phone only · no sync yet');
+  }
+
+  function write(path, value) {
+    // optimistic local update so taps feel instant
+    const parts = path.split('/');
+    let node = state;
+    for (let i = 0; i < parts.length - 1; i++) { node[parts[i]] = node[parts[i]] || {}; node = node[parts[i]]; }
+    if (value === null) delete node[parts[parts.length - 1]]; else node[parts[parts.length - 1]] = value;
+    cache(); render();
+    if (ref) ref.child(path).set(value).catch(err => { console.error(err); setStatus('error', 'Save failed · check database rules'); });
+  }
+
+  // ---------- who ----------
+  const whoBtn = document.getElementById('whoBtn');
+  const whoDlg = document.getElementById('whoDlg');
+  const peopleEl = document.getElementById('people');
+  function renderWho() {
+    whoBtn.textContent = who || 'Who are you?';
+    peopleEl.innerHTML = '';
+    CFG.people.forEach(name => {
+      const b = document.createElement('button');
+      b.type = 'button'; b.textContent = name; b.className = name === who ? 'current' : '';
+      b.addEventListener('click', () => { who = name; try { localStorage.setItem(WHO_KEY, name); } catch (e) {} renderWho(); whoDlg.close(); });
+      peopleEl.appendChild(b);
+    });
+  }
+  whoBtn.addEventListener('click', () => whoDlg.showModal());
+  renderWho();
+  if (!who) setTimeout(() => { try { whoDlg.showModal(); } catch (e) {} }, 600);
+
+  // ---------- dogs ----------
+  const dogsEl = document.getElementById('dogs');
+  const ringEls = [];
+  CFG.dogs.forEach((dog, i) => {
+    const fig = document.createElement('figure');
+    fig.className = 'dog ' + (i % 2 === 0 ? 'cyan' : 'orange');
+    const ring = document.createElement('div'); ring.className = 'ring';
+    ring.innerHTML = '<div class="orbit"></div><div class="orbit inner"></div>';
+    const frame = document.createElement('div'); frame.className = 'frame';
+    const img = document.createElement('img'); img.alt = dog.name; img.src = dog.photo || ''; img.loading = 'eager';
+    img.addEventListener('error', () => img.classList.add('missing'));
+    if (!dog.photo) img.classList.add('missing');
+    const fb = document.createElement('span'); fb.className = 'fallback'; fb.textContent = initials(dog.name);
+    frame.appendChild(img); frame.appendChild(fb); ring.appendChild(frame);
+    const cap = document.createElement('figcaption'); cap.textContent = dog.short || dog.name.toUpperCase();
+    const cnt = document.createElement('div'); cnt.className = 'today-count';
+    fig.appendChild(ring); fig.appendChild(cap); fig.appendChild(cnt);
+    dogsEl.appendChild(fig);
+    ringEls.push({ ring, cnt });
+  });
+
+  // ---------- week + ledger ----------
+  const daysEl = document.getElementById('days');
+  const weekLabel = document.getElementById('weekLabel');
+  const walkCount = document.getElementById('walkCount');
+  const walkMax = document.getElementById('walkMax');
+  const owedEl = document.getElementById('owed');
+  const owedLbl = document.getElementById('owedLbl');
+  const owedStat = document.getElementById('owedStat');
+  const paidBtn = document.getElementById('paidBtn');
+  const carry = document.getElementById('carry');
+  const carryText = document.getElementById('carryText');
+  const carryAmt = document.getElementById('carryAmt');
+
+  function weekDates(monday) { return DAYS.map(dow => addDays(monday, (dow + 6) % 7)); }
+  function walksInWeek(monday) {
+    let n = 0;
+    weekDates(monday).forEach(d => { const w = state.walks[key(d)]; if (w) SLOTS.forEach(s => { if (w[s.id]) n++; }); });
+    return n;
+  }
+
+  function render() {
+    const todayKey = key(new Date());
+    const dates = weekDates(viewMonday);
+    const first = dates[0], last = dates[dates.length - 1];
+    const thisMonday = mondayOf(new Date());
+    const rel = Math.round((viewMonday - thisMonday) / 864e5 / 7);
+    weekLabel.innerHTML = MONTHS[first.getMonth()] + ' ' + first.getDate() + ' – ' + MONTHS[last.getMonth()] + ' ' + last.getDate() +
+      '<small>' + (rel === 0 ? 'this week' : rel === -1 ? 'last week' : rel === 1 ? 'next week' : Math.abs(rel) + ' weeks ' + (rel < 0 ? 'ago' : 'ahead')) + '</small>';
+
+    daysEl.innerHTML = '';
+    dates.forEach(d => {
+      const k = key(d);
+      const row = document.createElement('div');
+      row.className = 'day' + (k === todayKey ? ' today' : '') + (k > todayKey ? ' future' : '');
+      const name = document.createElement('div'); name.className = 'dname';
+      name.innerHTML = '<b>' + DAY_NAMES[d.getDay()] + '</b><span>' + d.getDate() + '</span>' + (k === todayKey ? '<i>today</i>' : '');
+      row.appendChild(name);
+      SLOTS.forEach(slot => {
+        const rec = (state.walks[k] || {})[slot.id];
+        const b = document.createElement('button');
+        b.type = 'button'; b.className = 'walk ' + slot.id + (rec ? ' done' : '');
+        b.setAttribute('aria-pressed', rec ? 'true' : 'false');
+        b.setAttribute('aria-label', slot.label + ' walk ' + DAY_NAMES[d.getDay()] + ' ' + d.getDate() + (rec ? ', done' : ', not yet'));
+        b.innerHTML = '<span class="t">' + slot.label + ' walk</span><small>' + (rec ? initials(rec.by || '?') + ' · ' + fmtTime(rec.at) : '&nbsp;') + '</small><span class="check">✓</span>';
+        b.addEventListener('click', () => toggle(k, slot.id, b));
+        row.appendChild(b);
+      });
+      daysEl.appendChild(row);
+    });
+
+    // ledger
+    const n = walksInWeek(viewMonday);
+    const max = dates.length * SLOTS.length;
+    const paidRec = state.paid[key(viewMonday)];
+    walkCount.firstChild.textContent = n; walkMax.textContent = ' / ' + max;
+    if (paidRec) {
+      owedStat.classList.add('settled'); owedLbl.textContent = 'Paid ' + (paidRec.at ? new Date(paidRec.at).toLocaleDateString([], { month: 'short', day: 'numeric' }) : '');
+      owedEl.textContent = 'SETTLED · $' + (n * RATE);
+      paidBtn.textContent = 'Undo paid'; paidBtn.classList.add('settled'); paidBtn.disabled = false;
+    } else {
+      owedStat.classList.remove('settled'); owedLbl.textContent = rel === 0 ? 'Owed this week' : 'Owed for this week';
+      owedEl.textContent = '$' + (n * RATE);
+      paidBtn.textContent = 'Mark week paid'; paidBtn.classList.remove('settled'); paidBtn.disabled = n === 0;
+    }
+
+    // earlier unpaid weeks (only those before the week on screen)
+    const unpaid = {};
+    Object.keys(state.walks).forEach(k => {
+      const m = mondayOf(parse(k)); const mk = key(m);
+      if (m < viewMonday && !state.paid[mk]) {
+        const w = state.walks[k]; SLOTS.forEach(s => { if (w[s.id]) unpaid[mk] = (unpaid[mk] || 0) + 1; });
+      }
+    });
+    const weeks = Object.keys(unpaid); const total = weeks.reduce((a, k) => a + unpaid[k], 0) * RATE;
+    if (total > 0) { carry.classList.add('show'); carryText.textContent = 'Still unpaid from ' + weeks.length + ' earlier week' + (weeks.length > 1 ? 's' : ''); carryAmt.textContent = '$' + total; }
+    else carry.classList.remove('show');
+
+    // dogs glow when today's walks are done
+    const today = state.walks[todayKey] || {};
+    const doneToday = SLOTS.filter(s => today[s.id]).length;
+    ringEls.forEach(({ ring, cnt }) => {
+      ring.classList.toggle('walked', doneToday > 0);
+      cnt.textContent = doneToday === 0 ? 'no walks yet today' : doneToday === SLOTS.length ? 'walked twice today' : 'walked once today';
+    });
+  }
+
+  function toggle(dateKey, slot, btn) {
+    if (!who) { whoDlg.showModal(); return; }
+    const rec = (state.walks[dateKey] || {})[slot];
+    btn.classList.remove('pulse'); void btn.offsetWidth; btn.classList.add('pulse');
+    write('walks/' + dateKey + '/' + slot, rec ? null : { by: who, at: Date.now() });
+  }
+
+  paidBtn.addEventListener('click', () => {
+    if (!who) { whoDlg.showModal(); return; }
+    const mk = key(viewMonday);
+    write('paid/' + mk, state.paid[mk] ? null : { by: who, at: Date.now() });
+  });
+  document.getElementById('prevWeek').addEventListener('click', () => { viewMonday = addDays(viewMonday, -7); render(); });
+  document.getElementById('nextWeek').addEventListener('click', () => { viewMonday = addDays(viewMonday, 7); render(); });
+
+  render();
+
+  // ---------- the grid floor (canvas) ----------
+  const canvas = document.getElementById('grid');
+  const ctx = canvas.getContext('2d');
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let W, H, dpr;
+  function resize() {
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    W = canvas.width = Math.floor(innerWidth * dpr); H = canvas.height = Math.floor(innerHeight * dpr);
+    canvas.style.width = innerWidth + 'px'; canvas.style.height = innerHeight + 'px';
+  }
+  resize(); addEventListener('resize', resize);
+  let t = 0;
+  function frame() {
+    ctx.clearRect(0, 0, W, H);
+    const horizon = H * 0.46, vx = W / 2;
+    // sky glow
+    const sky = ctx.createLinearGradient(0, 0, 0, horizon);
+    sky.addColorStop(0, '#04070f'); sky.addColorStop(1, '#071426');
+    ctx.fillStyle = sky; ctx.fillRect(0, 0, W, horizon);
+    const floor = ctx.createLinearGradient(0, horizon, 0, H);
+    floor.addColorStop(0, '#061224'); floor.addColorStop(1, '#03060d');
+    ctx.fillStyle = floor; ctx.fillRect(0, horizon, W, H - horizon);
+    // horizontal lines rushing toward the viewer
+    ctx.lineWidth = 1 * dpr;
+    const rows = 18;
+    for (let i = 0; i < rows; i++) {
+      let p = ((i + t) % rows) / rows;
+      p = p * p * p;
+      const y = horizon + p * (H - horizon);
+      const a = Math.min(1, p * 2.2) * 0.55;
+      ctx.strokeStyle = 'rgba(0,229,255,' + a.toFixed(3) + ')';
+      ctx.shadowColor = 'rgba(0,229,255,0.8)'; ctx.shadowBlur = 6 * dpr * a;
+      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+    }
+    // converging verticals
+    ctx.shadowBlur = 0;
+    const cols = 14, spread = W * 1.6;
+    for (let i = -cols; i <= cols; i++) {
+      const xb = vx + (i / cols) * spread;
+      const g = ctx.createLinearGradient(vx, horizon, xb, H);
+      g.addColorStop(0, 'rgba(0,229,255,0)'); g.addColorStop(0.35, 'rgba(0,229,255,0.28)'); g.addColorStop(1, 'rgba(0,229,255,0.06)');
+      ctx.strokeStyle = g;
+      ctx.beginPath(); ctx.moveTo(vx, horizon); ctx.lineTo(xb, H); ctx.stroke();
+    }
+    // vignette so the panels read on top
+    const vg = ctx.createRadialGradient(vx, H * 0.55, W * 0.15, vx, H * 0.55, Math.max(W, H) * 0.8);
+    vg.addColorStop(0, 'rgba(4,7,15,0.15)'); vg.addColorStop(1, 'rgba(4,7,15,0.75)');
+    ctx.fillStyle = vg; ctx.fillRect(0, 0, W, H);
+    if (!reduce) { t += 0.012; requestAnimationFrame(frame); }
+  }
+  frame();
+})();
+</script>
+</body>
+</html>
